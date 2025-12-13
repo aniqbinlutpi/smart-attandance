@@ -77,13 +77,6 @@ class MyApp extends StatelessWidget {
               vertical: 16,
             ),
           ),
-          cardTheme: const CardThemeData(
-            elevation: 2,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Radius.circular(16)),
-            ),
-            color: AppColors.surface,
-          ),
           useMaterial3: true,
         ),
         home: const AuthWrapper(),
