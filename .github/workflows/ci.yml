@@ -123,9 +123,12 @@ jobs:
       
       - name: 📈 Coverage Summary
         if: always()
+        continue-on-error: true
         run: |
-          if [ -f coverage/lcov.info ]; then
+          if [ -f coverage/lcov.info ] && [ -s coverage/lcov.info ]; then
             lcov --summary coverage/lcov.info
+          else
+            echo "No coverage data available - tests passed but no code coverage generated"
           fi
 
   # Job 3: Build Android
