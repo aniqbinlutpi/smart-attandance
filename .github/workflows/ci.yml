@@ -103,10 +103,15 @@ jobs:
       
       - name: 📊 Generate Coverage Report
         if: always()
+        continue-on-error: true
         run: |
           sudo apt-get update
           sudo apt-get install -y lcov
-          genhtml coverage/lcov.info -o coverage/html
+          if [ -f coverage/lcov.info ] && [ -s coverage/lcov.info ]; then
+            genhtml coverage/lcov.info -o coverage/html
+          else
+            echo "No coverage data generated - skipping report generation"
+          fi
       
       - name: 📤 Upload Coverage Report
         if: always()
