@@ -1,67 +1,100 @@
 # Auto-labeling configuration for pull requests
+# Format for actions/labeler@v5
 
 # Label based on modified files
-lib/**/*.dart:
-  - dart
-  - code
+dart:
+  - changed-files:
+    - any-glob-to-any-file: 'lib/**/*.dart'
 
-test/**/*.dart:
-  - testing
-  - dart
+code:
+  - changed-files:
+    - any-glob-to-any-file: 'lib/**/*.dart'
 
-.github/workflows/**:
-  - ci/cd
-  - github-actions
+testing:
+  - changed-files:
+    - any-glob-to-any-file: 'test/**/*.dart'
 
-android/**:
-  - android
-  - platform
+ci/cd:
+  - changed-files:
+    - any-glob-to-any-file: '.github/workflows/**'
 
-ios/**:
-  - ios
-  - platform
+github-actions:
+  - changed-files:
+    - any-glob-to-any-file: '.github/workflows/**'
 
-web/**:
-  - web
-  - platform
+android:
+  - changed-files:
+    - any-glob-to-any-file: 'android/**'
 
-linux/**:
-  - linux
-  - platform
+ios:
+  - changed-files:
+    - any-glob-to-any-file: 'ios/**'
 
-macos/**:
-  - macos
-  - platform
+web:
+  - changed-files:
+    - any-glob-to-any-file: 'web/**'
 
-windows/**:
-  - windows
-  - platform
+linux:
+  - changed-files:
+    - any-glob-to-any-file: 'linux/**'
 
-pubspec.yaml:
-  - dependencies
+macos:
+  - changed-files:
+    - any-glob-to-any-file: 'macos/**'
 
-analysis_options.yaml:
-  - configuration
+windows:
+  - changed-files:
+    - any-glob-to-any-file: 'windows/**'
 
-'**/*.md':
-  - documentation
+platform:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'android/**'
+      - 'ios/**'
+      - 'web/**'
+      - 'linux/**'
+      - 'macos/**'
+      - 'windows/**'
 
-lib/screens/**:
-  - ui
-  - screens
+dependencies:
+  - changed-files:
+    - any-glob-to-any-file: 'pubspec.yaml'
 
-lib/widgets/**:
-  - ui
-  - widgets
+configuration:
+  - changed-files:
+    - any-glob-to-any-file: 'analysis_options.yaml'
 
-lib/providers/**:
-  - state-management
+documentation:
+  - changed-files:
+    - any-glob-to-any-file: '**/*.md'
 
-lib/models/**:
-  - models
+ui:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'lib/screens/**'
+      - 'lib/widgets/**'
 
-lib/services/**:
-  - services
+screens:
+  - changed-files:
+    - any-glob-to-any-file: 'lib/screens/**'
 
-lib/repositories/**:
-  - repositories
+widgets:
+  - changed-files:
+    - any-glob-to-any-file: 'lib/widgets/**'
+
+state-management:
+  - changed-files:
+    - any-glob-to-any-file: 'lib/providers/**'
+
+models:
+  - changed-files:
+    - any-glob-to-any-file: 'lib/models/**'
+
+services:
+  - changed-files:
+    - any-glob-to-any-file: 'lib/services/**'
+
+repositories:
+  - changed-files:
+    - any-glob-to-any-file: 'lib/repositories/**'
+
