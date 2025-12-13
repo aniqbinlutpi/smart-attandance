@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [ main, develop ]
   workflow_dispatch:
+    inputs:
+      run_builds:
+        description: 'Run platform builds (Android, iOS, Web)'
+        required: false
+        type: boolean
+        default: false
 
 env:
   FLUTTER_VERSION: '3.24.0'
@@ -268,7 +274,7 @@ jobs:
   notify-discord:
     name: Send Discord Notification
     runs-on: ubuntu-latest
-    if: always() && secrets.DISCORD_WEBHOOK_URL != ''
+    if: always()
     needs: [code-quality, test, build-android, build-ios, build-web]
     
     steps:
@@ -308,7 +314,10 @@ jobs:
           fi
       
       - name: 📢 Send Discord Notification
+        if: env.DISCORD_WEBHOOK_URL != ''
         uses: tsickert/discord-webhook@v6.0.0
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
           embed-title: "${{ steps.status.outputs.emoji }} CI Pipeline - ${{ steps.status.outputs.status == 'success' && 'Success' || 'Failed' }}"
