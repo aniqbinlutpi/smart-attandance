@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [ main, develop ]
   workflow_dispatch:
+    inputs:
+      run_builds:
+        description: 'Run platform builds (Android, iOS, Web)'
+        required: false
+        type: boolean
+        default: false
 
 env:
   FLUTTER_VERSION: '3.24.0'
@@ -131,12 +137,13 @@ jobs:
             echo "No coverage data available - tests passed but no code coverage generated"
           fi
 
-  # Job 3: Build Android
+  # Job 3: Build Android (Optional - only runs when manually triggered)
   build-android:
     name: Build Android APK
     runs-on: ubuntu-latest
     timeout-minutes: 45
     needs: test
+    if: github.event_name == 'workflow_dispatch' && inputs.run_builds == true
     
     steps:
       - name: 📥 Checkout Repository
@@ -194,12 +201,13 @@ jobs:
           path: build/app/outputs/flutter-apk/app-debug.apk
           retention-days: 7
 
-  # Job 4: Build iOS (macOS runner)
+  # Job 4: Build iOS (Optional - only runs when manually triggered)
   build-ios:
     name: Build iOS App
     runs-on: macos-latest
     timeout-minutes: 30
     needs: test
+    if: github.event_name == 'workflow_dispatch' && inputs.run_builds == true
     
     steps:
       - name: 📥 Checkout Repository
@@ -223,12 +231,13 @@ jobs:
         run: |
           echo "iOS build completed successfully"
 
-  # Job 5: Build Web
+  # Job 5: Build Web (Optional - only runs when manually triggered)
   build-web:
     name: Build Web App
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: test
+    if: github.event_name == 'workflow_dispatch' && inputs.run_builds == true
     
     steps:
       - name: 📥 Checkout Repository
@@ -272,14 +281,32 @@ jobs:
       - name: 📊 Determine Status
         id: status
         run: |
+          # Check if builds were run
+          BUILDS_RUN="${{ github.event_name == 'workflow_dispatch' && inputs.run_builds == true }}"
+          
+          # Always check code quality and tests
           if [[ "${{ needs.code-quality.result }}" == "success" ]] && \
-             [[ "${{ needs.test.result }}" == "success" ]] && \
-             [[ "${{ needs.build-android.result }}" == "success" ]] && \
-             [[ "${{ needs.build-ios.result }}" == "success" ]] && \
-             [[ "${{ needs.build-web.result }}" == "success" ]]; then
-            echo "status=success" >> $GITHUB_OUTPUT
-            echo "color=3066993" >> $GITHUB_OUTPUT
-            echo "emoji=✅" >> $GITHUB_OUTPUT
+             [[ "${{ needs.test.result }}" == "success" ]]; then
+            
+            # If builds were run, check them too
+            if [[ "$BUILDS_RUN" == "true" ]]; then
+              if [[ "${{ needs.build-android.result }}" == "success" ]] && \
+                 [[ "${{ needs.build-ios.result }}" == "success" ]] && \
+                 [[ "${{ needs.build-web.result }}" == "success" ]]; then
+                echo "status=success" >> $GITHUB_OUTPUT
+                echo "color=3066993" >> $GITHUB_OUTPUT
+                echo "emoji=✅" >> $GITHUB_OUTPUT
+              else
+                echo "status=failure" >> $GITHUB_OUTPUT
+                echo "color=15158332" >> $GITHUB_OUTPUT
+                echo "emoji=❌" >> $GITHUB_OUTPUT
+              fi
+            else
+              # Builds skipped, only code quality and tests matter
+              echo "status=success" >> $GITHUB_OUTPUT
+              echo "color=3066993" >> $GITHUB_OUTPUT
+              echo "emoji=✅" >> $GITHUB_OUTPUT
+            fi
           else
             echo "status=failure" >> $GITHUB_OUTPUT
             echo "color=15158332" >> $GITHUB_OUTPUT
@@ -291,7 +318,7 @@ jobs:
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
           embed-title: "${{ steps.status.outputs.emoji }} CI Pipeline - ${{ steps.status.outputs.status == 'success' && 'Success' || 'Failed' }}"
-          embed-description: |
+          embed-description: |-
             **Repository:** ${{ github.repository }}
             **Branch:** `${{ github.ref_name }}`
             **Commit:** `${{ github.sha }}`
@@ -301,9 +328,9 @@ jobs:
             **Job Results:**
             • Code Quality: ${{ needs.code-quality.result == 'success' && '✅' || '❌' }} ${{ needs.code-quality.result }}
             • Tests: ${{ needs.test.result == 'success' && '✅' || '❌' }} ${{ needs.test.result }}
-            • Android Build: ${{ needs.build-android.result == 'success' && '✅' || '❌' }} ${{ needs.build-android.result }}
-            • iOS Build: ${{ needs.build-ios.result == 'success' && '✅' || '❌' }} ${{ needs.build-ios.result }}
-            • Web Build: ${{ needs.build-web.result == 'success' && '✅' || '❌' }} ${{ needs.build-web.result }}
+            ${{ github.event_name == 'workflow_dispatch' && inputs.run_builds == true && format('• Android Build: {0} {1}', needs.build-android.result == 'success' && '✅' || '❌', needs.build-android.result) || '• Builds: ⏭️ skipped' }}
+            ${{ github.event_name == 'workflow_dispatch' && inputs.run_builds == true && format('• iOS Build: {0} {1}', needs.build-ios.result == 'success' && '✅' || '❌', needs.build-ios.result) || '' }}
+            ${{ github.event_name == 'workflow_dispatch' && inputs.run_builds == true && format('• Web Build: {0} {1}', needs.build-web.result == 'success' && '✅' || '❌', needs.build-web.result) || '' }}
           embed-color: ${{ steps.status.outputs.color }}
           embed-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           embed-footer-text: "Smart Attendance CI/CD"
