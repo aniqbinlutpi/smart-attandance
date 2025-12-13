@@ -1,0 +1,14 @@
+// Flutter SDK compatibility script for legacy plugins
+// This script provides Flutter SDK properties to plugins that haven't migrated
+// to the new declarative Gradle plugin system in Flutter 3.24+
+
+ext {
+    flutter = [
+        compileSdkVersion: 34,
+        minSdkVersion: 21,
+        targetSdkVersion: 34,
+        ndkVersion: "26.1.10909125",
+        versionCode: 1,
+        versionName: "1.0.0"
+    ]
+}
