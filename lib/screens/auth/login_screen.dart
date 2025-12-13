@@ -65,9 +65,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   Text(
                     AppStrings.appName,
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
@@ -75,8 +75,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   Text(
                     'Welcome back! Please sign in to continue.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+                          color: AppColors.textSecondary,
+                        ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 48),
@@ -137,9 +137,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   Consumer<AuthProvider>(
                     builder: (context, authProvider, _) {
                       return ElevatedButton(
-                        onPressed: authProvider.isLoading
-                            ? null
-                            : _handleSignIn,
+                        onPressed:
+                            authProvider.isLoading ? null : _handleSignIn,
                         child: authProvider.isLoading
                             ? const SizedBox(
                                 height: 20,

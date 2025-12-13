@@ -31,8 +31,8 @@ class AttendanceModel {
       checkInTime: DateTime.parse(json['check_in_time'] ?? json['checkInTime']),
       checkOutTime:
           json['check_out_time'] != null || json['checkOutTime'] != null
-          ? DateTime.parse(json['check_out_time'] ?? json['checkOutTime'])
-          : null,
+              ? DateTime.parse(json['check_out_time'] ?? json['checkOutTime'])
+              : null,
       status: json['status'] ?? 'absent',
       location: json['location'],
       notes: json['notes'],

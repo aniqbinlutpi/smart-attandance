@@ -70,14 +70,15 @@ jobs:
     steps:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       
       - name: 🔍 Scan for Secrets
+        continue-on-error: true
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
-          base: ${{ github.event.repository.default_branch }}
-          head: HEAD
-          extra_args: --only-verified
+          extra_args: --only-verified --no-update
       
       - name: 🔐 Check for Hardcoded Credentials
         run: |

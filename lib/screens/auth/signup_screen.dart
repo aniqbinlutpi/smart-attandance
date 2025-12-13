@@ -88,9 +88,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   Text(
                     'Create Account',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
@@ -98,8 +98,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   Text(
                     'Sign up to get started',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+                          color: AppColors.textSecondary,
+                        ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 32),
@@ -237,9 +237,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   Consumer<AuthProvider>(
                     builder: (context, authProvider, _) {
                       return ElevatedButton(
-                        onPressed: authProvider.isLoading
-                            ? null
-                            : _handleSignUp,
+                        onPressed:
+                            authProvider.isLoading ? null : _handleSignUp,
                         child: authProvider.isLoading
                             ? const SizedBox(
                                 height: 20,
