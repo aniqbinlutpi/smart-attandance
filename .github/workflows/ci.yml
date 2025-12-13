@@ -270,11 +270,11 @@ jobs:
           path: build/web/
           retention-days: 7
 
-  # Job 6: Discord Notification
+  # Job 6: Discord Notification (Optional - only if webhook is configured)
   notify-discord:
     name: Send Discord Notification
     runs-on: ubuntu-latest
-    if: always()
+    if: always() && secrets.DISCORD_WEBHOOK_URL != ''
     needs: [code-quality, test, build-android, build-ios, build-web]
     
     steps:
