@@ -1,0 +1,196 @@
+name: Security Scan
+
+on:
+  schedule:
+    # Run every Monday at 9:00 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+env:
+  FLUTTER_VERSION: '3.24.0'
+
+jobs:
+  # Job 1: Dependency Security Scan
+  dependency-scan:
+    name: Dependency Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: 🔧 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+      
+      - name: 📦 Install Dependencies
+        run: flutter pub get
+      
+      - name: 🔐 Check for Outdated Packages
+        id: outdated
+        run: |
+          echo "Checking for outdated packages..."
+          flutter pub outdated --json > outdated.json || true
+          
+          if [ -s outdated.json ]; then
+            echo "has_outdated=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_outdated=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: 📊 Generate Dependency Report
+        run: |
+          echo "# Dependency Security Report" > dependency_report.md
+          echo "" >> dependency_report.md
+          echo "Generated on: $(date -u)" >> dependency_report.md
+          echo "" >> dependency_report.md
+          echo "## Outdated Packages" >> dependency_report.md
+          echo "" >> dependency_report.md
+          flutter pub outdated >> dependency_report.md || echo "No outdated packages found" >> dependency_report.md
+      
+      - name: 📤 Upload Dependency Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-security-report
+          path: dependency_report.md
+          retention-days: 90
+
+  # Job 2: Code Security Scan
+  code-scan:
+    name: Code Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: 🔍 Scan for Secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --only-verified
+      
+      - name: 🔐 Check for Hardcoded Credentials
+        run: |
+          echo "Scanning for potential hardcoded credentials..."
+          
+          # Check for common patterns
+          echo "## Security Scan Results" > security_report.md
+          echo "" >> security_report.md
+          echo "Generated on: $(date -u)" >> security_report.md
+          echo "" >> security_report.md
+          
+          # API Keys
+          echo "### Potential API Keys" >> security_report.md
+          grep -r -i -n "api[_-]key" lib/ --include="*.dart" | grep -v "// " | grep -v "/// " >> security_report.md || echo "None found" >> security_report.md
+          echo "" >> security_report.md
+          
+          # Passwords
+          echo "### Potential Passwords" >> security_report.md
+          grep -r -i -n "password.*=.*['\"]" lib/ --include="*.dart" | grep -v "// " | grep -v "/// " >> security_report.md || echo "None found" >> security_report.md
+          echo "" >> security_report.md
+          
+          # Tokens
+          echo "### Potential Tokens" >> security_report.md
+          grep -r -i -n "token.*=.*['\"]" lib/ --include="*.dart" | grep -v "// " | grep -v "/// " >> security_report.md || echo "None found" >> security_report.md
+          echo "" >> security_report.md
+          
+          # Secrets
+          echo "### Potential Secrets" >> security_report.md
+          grep -r -i -n "secret.*=.*['\"]" lib/ --include="*.dart" | grep -v "// " | grep -v "/// " >> security_report.md || echo "None found" >> security_report.md
+      
+      - name: 📤 Upload Security Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-security-report
+          path: security_report.md
+          retention-days: 90
+
+  # Job 3: License Compliance
+  license-check:
+    name: License Compliance Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: 🔧 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+      
+      - name: 📦 Install Dependencies
+        run: flutter pub get
+      
+      - name: 📜 Generate License Report
+        run: |
+          echo "# License Compliance Report" > license_report.md
+          echo "" >> license_report.md
+          echo "Generated on: $(date -u)" >> license_report.md
+          echo "" >> license_report.md
+          echo "## Dependencies" >> license_report.md
+          echo "" >> license_report.md
+          flutter pub deps --style=compact >> license_report.md
+      
+      - name: 📤 Upload License Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-compliance-report
+          path: license_report.md
+          retention-days: 90
+
+  # Job 4: Discord Notification
+  notify-discord:
+    name: Send Discord Notification
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [dependency-scan, code-scan, license-check]
+    
+    steps:
+      - name: 📊 Determine Status
+        id: status
+        run: |
+          if [[ "${{ needs.dependency-scan.result }}" == "success" ]] && \
+             [[ "${{ needs.code-scan.result }}" == "success" ]] && \
+             [[ "${{ needs.license-check.result }}" == "success" ]]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "color=3066993" >> $GITHUB_OUTPUT
+            echo "emoji=🔒" >> $GITHUB_OUTPUT
+          else
+            echo "status=failure" >> $GITHUB_OUTPUT
+            echo "color=15158332" >> $GITHUB_OUTPUT
+            echo "emoji=⚠️" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: 📢 Send Discord Notification
+        uses: tsickert/discord-webhook@v6.0.0
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          embed-title: "${{ steps.status.outputs.emoji }} Security Scan - ${{ steps.status.outputs.status == 'success' && 'Completed' || 'Issues Found' }}"
+          embed-description: |
+            **Repository:** ${{ github.repository }}
+            **Scan Type:** ${{ github.event_name == 'schedule' && 'Scheduled Weekly Scan' || 'Manual Scan' }}
+            **Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+            
+            **Scan Results:**
+            • Dependency Scan: ${{ needs.dependency-scan.result == 'success' && '✅' || '❌' }} ${{ needs.dependency-scan.result }}
+            • Code Security: ${{ needs.code-scan.result == 'success' && '✅' || '❌' }} ${{ needs.code-scan.result }}
+            • License Check: ${{ needs.license-check.result == 'success' && '✅' || '❌' }} ${{ needs.license-check.result }}
+            
+            **Reports available in workflow artifacts**
+          embed-color: ${{ steps.status.outputs.color }}
+          embed-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          embed-footer-text: "Smart Attendance Security Scan"

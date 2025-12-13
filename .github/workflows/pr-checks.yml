@@ -1,0 +1,306 @@
+name: Pull Request Checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: [ main, develop ]
+
+env:
+  FLUTTER_VERSION: '3.24.0'
+
+jobs:
+  # Job 1: PR Validation
+  pr-validation:
+    name: PR Validation
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    timeout-minutes: 5
+    
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: ✅ Validate PR Title
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            build
+            ci
+            chore
+            revert
+          requireScope: false
+      
+      - name: 📊 PR Size Check
+        run: |
+          FILES_CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | wc -l)
+          LINES_CHANGED=$(git diff --stat origin/${{ github.base_ref }}...HEAD | tail -1 | awk '{print $4+$6}')
+          
+          echo "Files changed: $FILES_CHANGED"
+          echo "Lines changed: $LINES_CHANGED"
+          
+          if [ $FILES_CHANGED -gt 50 ]; then
+            echo "⚠️ Warning: This PR modifies more than 50 files. Consider breaking it into smaller PRs."
+          fi
+          
+          if [ $LINES_CHANGED -gt 1000 ]; then
+            echo "⚠️ Warning: This PR has more than 1000 lines changed. Consider breaking it into smaller PRs."
+          fi
+
+  # Job 2: Code Quality
+  code-quality:
+    name: Code Quality Check
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    timeout-minutes: 15
+    
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: 🔧 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+      
+      - name: 📦 Install Dependencies
+        run: flutter pub get
+      
+      - name: ✨ Check Code Formatting
+        run: |
+          echo "Checking code formatting..."
+          UNFORMATTED=$(dart format --set-exit-if-changed . 2>&1 | grep "Changed" || true)
+          if [ -n "$UNFORMATTED" ]; then
+            echo "❌ Code formatting issues found:"
+            echo "$UNFORMATTED"
+            echo ""
+            echo "Please run: dart format ."
+            exit 1
+          fi
+          echo "✅ All files are properly formatted"
+      
+      - name: 🔎 Run Static Analysis
+        run: |
+          echo "Running static analysis..."
+          flutter analyze --fatal-infos --fatal-warnings
+      
+      - name: 🔍 Check for TODOs
+        run: |
+          TODOS=$(grep -r "TODO" lib/ test/ || true)
+          if [ -n "$TODOS" ]; then
+            echo "⚠️ Found TODO comments:"
+            echo "$TODOS"
+          fi
+
+  # Job 3: Security Checks
+  security:
+    name: Security Checks
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    timeout-minutes: 10
+    
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: 🔧 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+      
+      - name: 📦 Install Dependencies
+        run: flutter pub get
+      
+      - name: 🔐 Check for Hardcoded Secrets
+        run: |
+          echo "Checking for potential hardcoded secrets..."
+          
+          # Check for common secret patterns
+          SECRETS=$(grep -r -i -E "(api[_-]?key|password|secret|token|auth[_-]?key)" lib/ --include="*.dart" | grep -v "// " | grep -v "/// " || true)
+          
+          if [ -n "$SECRETS" ]; then
+            echo "⚠️ Potential hardcoded secrets found:"
+            echo "$SECRETS"
+            echo ""
+            echo "Please ensure no secrets are hardcoded in the source code."
+          else
+            echo "✅ No obvious hardcoded secrets found"
+          fi
+      
+      - name: 📊 Dependency Audit
+        run: |
+          echo "Checking for outdated dependencies..."
+          flutter pub outdated || true
+
+  # Job 4: Test Coverage
+  test-coverage:
+    name: Test Coverage
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    timeout-minutes: 20
+    
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: 🔧 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+      
+      - name: 📦 Install Dependencies
+        run: flutter pub get
+      
+      - name: 🧪 Run Tests with Coverage
+        run: |
+          flutter test --coverage --reporter expanded
+      
+      - name: 📊 Coverage Report
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lcov
+          
+          if [ -f coverage/lcov.info ]; then
+            COVERAGE=$(lcov --summary coverage/lcov.info 2>&1 | grep "lines" | awk '{print $2}')
+            echo "Test Coverage: $COVERAGE"
+            echo "COVERAGE=$COVERAGE" >> $GITHUB_ENV
+            
+            # Generate HTML report
+            genhtml coverage/lcov.info -o coverage/html
+          else
+            echo "No coverage data found"
+          fi
+      
+      - name: 📤 Upload Coverage Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-coverage-report
+          path: coverage/
+          retention-days: 14
+      
+      - name: 💬 Comment Coverage on PR
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const coverage = process.env.COVERAGE || 'N/A';
+            const comment = `## 📊 Test Coverage Report
+            
+            **Coverage:** ${coverage}
+            
+            View the detailed coverage report in the workflow artifacts.
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  # Job 5: Build Verification
+  build-check:
+    name: Build Verification
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    timeout-minutes: 25
+    
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: ☕ Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+          cache: 'gradle'
+      
+      - name: 🔧 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+      
+      - name: 📦 Install Dependencies
+        run: flutter pub get
+      
+      - name: 🏗️ Build Android Debug APK
+        run: |
+          flutter build apk --debug
+      
+      - name: ✅ Verify Build Output
+        run: |
+          if [ -f build/app/outputs/flutter-apk/app-debug.apk ]; then
+            echo "✅ Build successful"
+            APK_SIZE=$(du -h build/app/outputs/flutter-apk/app-debug.apk | cut -f1)
+            echo "APK Size: $APK_SIZE"
+          else
+            echo "❌ Build failed - APK not found"
+            exit 1
+          fi
+
+  # Job 6: Discord Notification
+  notify-discord:
+    name: Send Discord Notification
+    runs-on: ubuntu-latest
+    if: always() && github.event.pull_request.draft == false
+    needs: [pr-validation, code-quality, security, test-coverage, build-check]
+    
+    steps:
+      - name: 📊 Determine Status
+        id: status
+        run: |
+          if [[ "${{ needs.pr-validation.result }}" == "success" ]] && \
+             [[ "${{ needs.code-quality.result }}" == "success" ]] && \
+             [[ "${{ needs.security.result }}" == "success" ]] && \
+             [[ "${{ needs.test-coverage.result }}" == "success" ]] && \
+             [[ "${{ needs.build-check.result }}" == "success" ]]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "color=3066993" >> $GITHUB_OUTPUT
+            echo "emoji=✅" >> $GITHUB_OUTPUT
+          else
+            echo "status=failure" >> $GITHUB_OUTPUT
+            echo "color=15158332" >> $GITHUB_OUTPUT
+            echo "emoji=❌" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: 📢 Send Discord Notification
+        uses: tsickert/discord-webhook@v6.0.0
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          embed-title: "${{ steps.status.outputs.emoji }} PR #${{ github.event.pull_request.number }} - ${{ steps.status.outputs.status == 'success' && 'All Checks Passed' || 'Checks Failed' }}"
+          embed-description: |
+            **PR Title:** ${{ github.event.pull_request.title }}
+            **Author:** ${{ github.event.pull_request.user.login }}
+            **Branch:** `${{ github.head_ref }}` → `${{ github.base_ref }}`
+            
+            **Check Results:**
+            • PR Validation: ${{ needs.pr-validation.result == 'success' && '✅' || '❌' }} ${{ needs.pr-validation.result }}
+            • Code Quality: ${{ needs.code-quality.result == 'success' && '✅' || '❌' }} ${{ needs.code-quality.result }}
+            • Security: ${{ needs.security.result == 'success' && '✅' || '❌' }} ${{ needs.security.result }}
+            • Test Coverage: ${{ needs.test-coverage.result == 'success' && '✅' || '❌' }} ${{ needs.test-coverage.result }}
+            • Build Check: ${{ needs.build-check.result == 'success' && '✅' || '❌' }} ${{ needs.build-check.result }}
+            
+            [View Pull Request](${{ github.event.pull_request.html_url }})
+          embed-color: ${{ steps.status.outputs.color }}
+          embed-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          embed-footer-text: "Smart Attendance PR Checks"

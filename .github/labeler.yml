@@ -1,0 +1,67 @@
+# Auto-labeling configuration for pull requests
+
+# Label based on modified files
+lib/**/*.dart:
+  - dart
+  - code
+
+test/**/*.dart:
+  - testing
+  - dart
+
+.github/workflows/**:
+  - ci/cd
+  - github-actions
+
+android/**:
+  - android
+  - platform
+
+ios/**:
+  - ios
+  - platform
+
+web/**:
+  - web
+  - platform
+
+linux/**:
+  - linux
+  - platform
+
+macos/**:
+  - macos
+  - platform
+
+windows/**:
+  - windows
+  - platform
+
+pubspec.yaml:
+  - dependencies
+
+analysis_options.yaml:
+  - configuration
+
+'**/*.md':
+  - documentation
+
+lib/screens/**:
+  - ui
+  - screens
+
+lib/widgets/**:
+  - ui
+  - widgets
+
+lib/providers/**:
+  - state-management
+
+lib/models/**:
+  - models
+
+lib/services/**:
+  - services
+
+lib/repositories/**:
+  - repositories

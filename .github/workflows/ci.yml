@@ -1,0 +1,274 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  FLUTTER_VERSION: '3.24.0'
+  JAVA_VERSION: '17'
+
+jobs:
+  # Job 1: Code Quality Checks
+  code-quality:
+    name: Code Quality & Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: 🔧 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+      
+      - name: 📦 Install Dependencies
+        run: flutter pub get
+      
+      - name: 🔍 Verify Dependencies
+        run: flutter pub deps
+      
+      - name: 🔐 Check for Dependency Vulnerabilities
+        run: |
+          echo "Checking for outdated packages..."
+          flutter pub outdated || true
+      
+      - name: ✨ Verify Code Formatting
+        run: |
+          echo "Checking Dart code formatting..."
+          dart format --set-exit-if-changed .
+      
+      - name: 🔎 Run Dart Analyzer
+        run: |
+          echo "Running static analysis..."
+          flutter analyze --fatal-infos --fatal-warnings
+      
+      - name: 📊 Generate Analysis Report
+        if: always()
+        run: |
+          echo "Generating detailed analysis report..."
+          flutter analyze > analysis_report.txt 2>&1 || true
+      
+      - name: 📤 Upload Analysis Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: analysis-report
+          path: analysis_report.txt
+          retention-days: 30
+
+  # Job 2: Unit & Widget Tests
+  test:
+    name: Unit & Widget Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: code-quality
+    
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: 🔧 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+      
+      - name: 📦 Install Dependencies
+        run: flutter pub get
+      
+      - name: 🧪 Run Tests with Coverage
+        run: |
+          flutter test --coverage --reporter expanded
+      
+      - name: 📊 Generate Coverage Report
+        if: always()
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lcov
+          genhtml coverage/lcov.info -o coverage/html
+      
+      - name: 📤 Upload Coverage Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 30
+      
+      - name: 📈 Coverage Summary
+        if: always()
+        run: |
+          if [ -f coverage/lcov.info ]; then
+            lcov --summary coverage/lcov.info
+          fi
+
+  # Job 3: Build Android
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: test
+    
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: ☕ Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: 'gradle'
+      
+      - name: 🔧 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+      
+      - name: 📦 Install Dependencies
+        run: flutter pub get
+      
+      - name: 🏗️ Build Android APK (Debug)
+        run: |
+          flutter build apk --debug --verbose
+      
+      - name: 📊 APK Size Analysis
+        run: |
+          APK_SIZE=$(du -h build/app/outputs/flutter-apk/app-debug.apk | cut -f1)
+          echo "APK Size: $APK_SIZE"
+          echo "APK_SIZE=$APK_SIZE" >> $GITHUB_ENV
+      
+      - name: 📤 Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-debug
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 7
+
+  # Job 4: Build iOS (macOS runner)
+  build-ios:
+    name: Build iOS App
+    runs-on: macos-latest
+    timeout-minutes: 30
+    needs: test
+    
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: 🔧 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+      
+      - name: 📦 Install Dependencies
+        run: flutter pub get
+      
+      - name: 🏗️ Build iOS (No Codesign)
+        run: |
+          flutter build ios --debug --no-codesign --verbose
+      
+      - name: 📊 Build Summary
+        run: |
+          echo "iOS build completed successfully"
+
+  # Job 5: Build Web
+  build-web:
+    name: Build Web App
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: test
+    
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: 🔧 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+      
+      - name: 📦 Install Dependencies
+        run: flutter pub get
+      
+      - name: 🏗️ Build Web App
+        run: |
+          flutter build web --verbose
+      
+      - name: 📊 Build Size Analysis
+        run: |
+          WEB_SIZE=$(du -sh build/web | cut -f1)
+          echo "Web Build Size: $WEB_SIZE"
+          echo "WEB_SIZE=$WEB_SIZE" >> $GITHUB_ENV
+      
+      - name: 📤 Upload Web Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: build/web/
+          retention-days: 7
+
+  # Job 6: Discord Notification
+  notify-discord:
+    name: Send Discord Notification
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [code-quality, test, build-android, build-ios, build-web]
+    
+    steps:
+      - name: 📊 Determine Status
+        id: status
+        run: |
+          if [[ "${{ needs.code-quality.result }}" == "success" ]] && \
+             [[ "${{ needs.test.result }}" == "success" ]] && \
+             [[ "${{ needs.build-android.result }}" == "success" ]] && \
+             [[ "${{ needs.build-ios.result }}" == "success" ]] && \
+             [[ "${{ needs.build-web.result }}" == "success" ]]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "color=3066993" >> $GITHUB_OUTPUT
+            echo "emoji=✅" >> $GITHUB_OUTPUT
+          else
+            echo "status=failure" >> $GITHUB_OUTPUT
+            echo "color=15158332" >> $GITHUB_OUTPUT
+            echo "emoji=❌" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: 📢 Send Discord Notification
+        uses: tsickert/discord-webhook@v6.0.0
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          embed-title: "${{ steps.status.outputs.emoji }} CI Pipeline - ${{ steps.status.outputs.status == 'success' && 'Success' || 'Failed' }}"
+          embed-description: |
+            **Repository:** ${{ github.repository }}
+            **Branch:** `${{ github.ref_name }}`
+            **Commit:** `${{ github.sha }}`
+            **Author:** ${{ github.actor }}
+            **Event:** ${{ github.event_name }}
+            
+            **Job Results:**
+            • Code Quality: ${{ needs.code-quality.result == 'success' && '✅' || '❌' }} ${{ needs.code-quality.result }}
+            • Tests: ${{ needs.test.result == 'success' && '✅' || '❌' }} ${{ needs.test.result }}
+            • Android Build: ${{ needs.build-android.result == 'success' && '✅' || '❌' }} ${{ needs.build-android.result }}
+            • iOS Build: ${{ needs.build-ios.result == 'success' && '✅' || '❌' }} ${{ needs.build-ios.result }}
+            • Web Build: ${{ needs.build-web.result == 'success' && '✅' || '❌' }} ${{ needs.build-web.result }}
+          embed-color: ${{ steps.status.outputs.color }}
+          embed-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          embed-footer-text: "Smart Attendance CI/CD"
+          embed-timestamp: ${{ github.event.head_commit.timestamp }}
