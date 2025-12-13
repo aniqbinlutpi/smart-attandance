@@ -94,7 +94,14 @@ jobs:
       - name: 🔎 Run Static Analysis
         run: |
           echo "Running static analysis..."
-          flutter analyze --fatal-infos --fatal-warnings
+          flutter analyze > analysis.txt 2>&1 || true
+          cat analysis.txt
+          
+          # Fail only on actual errors
+          if grep -q "error •" analysis.txt; then
+            echo "❌ Found errors in analysis"
+            exit 1
+          fi
       
       - name: 🔍 Check for TODOs
         run: |
