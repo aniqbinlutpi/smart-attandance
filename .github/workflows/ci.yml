@@ -135,7 +135,7 @@ jobs:
   build-android:
     name: Build Android APK
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     needs: test
     
     steps:
@@ -149,6 +149,16 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
           cache: 'gradle'
       
+      - name: 📦 Cache Gradle Wrapper
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/wrapper
+            ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+      
       - name: 🔧 Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -159,9 +169,17 @@ jobs:
       - name: 📦 Install Dependencies
         run: flutter pub get
       
+      - name: ⚙️ Configure Gradle
+        run: |
+          mkdir -p ~/.gradle
+          echo "org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m -XX:+HeapDumpOnOutOfMemoryError" >> ~/.gradle/gradle.properties
+          echo "org.gradle.parallel=true" >> ~/.gradle/gradle.properties
+          echo "org.gradle.caching=true" >> ~/.gradle/gradle.properties
+          echo "org.gradle.daemon=true" >> ~/.gradle/gradle.properties
+      
       - name: 🏗️ Build Android APK (Debug)
         run: |
-          flutter build apk --debug --verbose
+          flutter build apk --debug
       
       - name: 📊 APK Size Analysis
         run: |
@@ -199,7 +217,7 @@ jobs:
       
       - name: 🏗️ Build iOS (No Codesign)
         run: |
-          flutter build ios --debug --no-codesign --verbose
+          flutter build ios --debug --no-codesign
       
       - name: 📊 Build Summary
         run: |
@@ -228,7 +246,7 @@ jobs:
       
       - name: 🏗️ Build Web App
         run: |
-          flutter build web --verbose
+          flutter build web
       
       - name: 📊 Build Size Analysis
         run: |
