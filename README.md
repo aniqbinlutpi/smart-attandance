@@ -6,6 +6,19 @@ Aplikasi mudah alih kehadiran pekerja menggunakan teknologi **Imbasan Wajah (Fac
 ![Dart](https://img.shields.io/badge/Dart-3.0%2B-blue?logo=dart)
 ![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20iOS-lightgrey)
 
+## 🎯 Quick Start: Face Recognition Setup
+
+**Want to implement face recognition?** We've prepared complete guides for you:
+
+1. **[FACE_RECOGNITION_SUMMARY.md](FACE_RECOGNITION_SUMMARY.md)** - Overview & what's included
+2. **[FACE_RECOGNITION_QUICKSTART.md](FACE_RECOGNITION_QUICKSTART.md)** ⭐ **START HERE** - Step-by-step checklist
+3. **[FACE_RECOGNITION_GUIDE.md](FACE_RECOGNITION_GUIDE.md)** - Complete implementation guide with code
+4. **[supabase_face_recognition_migration.sql](supabase_face_recognition_migration.sql)** - Database setup
+
+**Estimated Time**: 2-3 hours to complete basic implementation
+
+---
+
 ## 🌟 Fitur Utama
 
 * **Imbasan Wajah (Face Recognition):** Menggunakan Google ML Kit / TensorFlow Lite untuk pengesahan identiti pekerja.

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
-import '../../constants/app_colors.dart';
+
 import '../../constants/app_strings.dart';
 import 'signup_screen.dart';
 
@@ -36,8 +36,18 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(authProvider.errorMessage ?? 'Sign in failed'),
-            backgroundColor: AppColors.error,
+            content: Text(
+              authProvider.errorMessage ?? 'Sign in failed',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w300,
+              ),
+            ),
+            backgroundColor: Colors.black87,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
         );
       }
@@ -58,25 +68,45 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // App Logo/Icon
-                  Icon(Icons.fingerprint, size: 80, color: AppColors.primary),
-                  const SizedBox(height: 24),
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.black12,
+                        width: 2,
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.fingerprint,
+                      size: 50,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
 
                   // Title
-                  Text(
+                  const Text(
                     AppStrings.appName,
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w200,
+                      color: Colors.black87,
+                      letterSpacing: 2,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
 
-                  Text(
+                  const Text(
                     'Welcome back! Please sign in to continue.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w300,
+                      color: Colors.black54,
+                      letterSpacing: 0.5,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 48),
@@ -170,9 +200,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
+                      const Text(
                         AppStrings.dontHaveAccount,
-                        style: TextStyle(color: AppColors.textSecondary),
+                        style: TextStyle(
+                          color: Colors.black54,
+                          fontWeight: FontWeight.w300,
+                        ),
                       ),
                       TextButton(
                         onPressed: () {
