@@ -555,15 +555,20 @@ class _FaceScanScreenState extends State<FaceScanScreen>
           await Future.delayed(const Duration(milliseconds: 500));
           if (mounted) _startImageStream();
         } else {
-          // Failure after retries
+          // Failure after retries - show detailed mismatch info
+          final similarityPercent = matchResult['similarityPercent'];
           setState(() {
-            _statusMessage = "Face mismatch. Please re-register in Profile.";
+            _statusMessage = "Face mismatch (${similarityPercent}% match required 80%)";
             _isProcessing = false;
             _retryCount = 0;
           });
           if (mounted) {
             _showErrorDialog(
-                "Face not recognized.\n\nSince we improved security, please go to Profile > Face Registration and register again.");
+                "Face Not Recognized\n\n" +
+                "Match Score: ${similarityPercent}%\n" +
+                "Required: 80%\n\n" +
+                "The face detected does not match your registered face. " +
+                "If you're the registered user, please ensure good lighting and try again.");
           }
         }
       }

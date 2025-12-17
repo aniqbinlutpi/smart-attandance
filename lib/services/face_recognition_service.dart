@@ -16,9 +16,10 @@ class FaceRecognitionService {
   static const int inputSize = 112;
 
   // Threshold for Cosine Similarity (0.0 to 1.0)
-  // Higher threshold (0.75) for strong security and accuracy
-  // Multi-angle registration (5 angles) ensures legitimate users can pass
-  static const double similarityThreshold = 0.75;
+  // Very high threshold (0.80) for maximum security and accuracy
+  // Prevents different faces from being accepted even with similar features
+  // Multi-angle registration (5 angles) ensures legitimate users can still pass
+  static const double similarityThreshold = 0.80;
 
   FaceRecognitionService() {
     _initialize();
@@ -245,7 +246,9 @@ class FaceRecognitionService {
       return {'match': false, 'similarity': 0.0, 'message': 'No data'};
 
     double bestSim = 0.0;
-    for (var s in stored) {
+    int bestIndex = -1;
+    for (int i = 0; i < stored.length; i++) {
+      var s = stored[i];
       // Check dimension (heuristic was < 20, mobilefacenet is 192)
       if (s.length < 100) {
         return {
@@ -257,31 +260,50 @@ class FaceRecognitionService {
       }
 
       double sim = calculateSimilarity(scanned, s);
-      if (sim > bestSim) bestSim = sim;
+      debugPrint('🔍 [Match] Angle ${i + 1}: ${(sim * 100).toStringAsFixed(1)}%');
+      if (sim > bestSim) {
+        bestSim = sim;
+        bestIndex = i;
+      }
     }
 
     bool match = bestSim >= similarityThreshold;
+    debugPrint('🔍 [Match] Best: Angle ${bestIndex + 1} = ${(bestSim * 100).toStringAsFixed(1)}% (threshold: ${(similarityThreshold * 100).toStringAsFixed(0)}%)');
+    
     return {
       'match': match,
       'similarity': bestSim,
       'similarityPercent': (bestSim * 100).toStringAsFixed(1),
       'message': match
-          ? 'Face recognized ($bestSim)'
-          : 'Face not recognized ($bestSim < $similarityThreshold)',
+          ? 'Face recognized (${(bestSim * 100).toStringAsFixed(1)}%)'
+          : 'Face not recognized (${(bestSim * 100).toStringAsFixed(1)}% < ${(similarityThreshold * 100).toStringAsFixed(0)}%)',
     };
   }
 
   // Validation Proxy
   Map<String, dynamic> validateFaceQuality(Face face, {bool checkEyes = true}) {
-    // Basic checks from ML Kit
-    if (face.headEulerAngleY!.abs() > 20)
-      return {'valid': false, 'message': 'Look straighter'};
+    // Stricter validation for better face recognition accuracy
+    
+    // Check head angle - face should be straight on
+    if (face.headEulerAngleY!.abs() > 15)
+      return {'valid': false, 'message': 'Face the camera directly'};
+    
+    // Check vertical head angle
+    if (face.headEulerAngleX!.abs() > 15)
+      return {'valid': false, 'message': 'Keep head level'};
+    
+    // Check face size - ensure it's large enough for good detail
+    final boundingBox = face.boundingBox;
+    if (boundingBox.width < 100 || boundingBox.height < 100)
+      return {'valid': false, 'message': 'Move closer to camera'};
+    
     if (checkEyes) {
-      if ((face.leftEyeOpenProbability ?? 1) < 0.2)
-        //  return {'valid': false, 'message': 'Open eyes'};
-        // relaxed for now
-        return {'valid': true, 'message': 'OK'};
+      // Ensure eyes are clearly visible
+      if ((face.leftEyeOpenProbability ?? 0) < 0.5 || 
+          (face.rightEyeOpenProbability ?? 0) < 0.5)
+        return {'valid': false, 'message': 'Ensure eyes are clearly visible'};
     }
+    
     return {'valid': true, 'message': 'OK'};
   }
 
