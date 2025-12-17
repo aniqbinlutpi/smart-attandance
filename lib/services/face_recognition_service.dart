@@ -16,8 +16,9 @@ class FaceRecognitionService {
   static const int inputSize = 112;
 
   // Threshold for Cosine Similarity (0.0 to 1.0)
-  // Kept high (0.65) for strong security. Accuracy is ensured by multi-angle registration.
-  static const double similarityThreshold = 0.65;
+  // Higher threshold (0.75) for strong security and accuracy
+  // Multi-angle registration (5 angles) ensures legitimate users can pass
+  static const double similarityThreshold = 0.75;
 
   FaceRecognitionService() {
     _initialize();
@@ -29,7 +30,7 @@ class FaceRecognitionService {
       enableContours: true,
       enableLandmarks: true,
       enableClassification: true,
-      minFaceSize: 0.15,
+      minFaceSize: 0.20, // Increased from 0.15 to ensure higher quality faces
       performanceMode: FaceDetectorMode.accurate,
     );
     _faceDetector = FaceDetector(options: options);
@@ -83,7 +84,7 @@ class FaceRecognitionService {
 
       // 2. Crop Face with Padding
       // Add padding to ensure full face is captured (helps with recognition)
-      final double paddingRatio = 0.10; // 10% padding
+      final double paddingRatio = 0.20; // 20% padding for better feature capture
       final int paddingW = (face.boundingBox.width * paddingRatio).toInt();
       final int paddingH = (face.boundingBox.height * paddingRatio).toInt();
 

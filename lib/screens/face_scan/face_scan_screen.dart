@@ -202,7 +202,7 @@ class _FaceScanScreenState extends State<FaceScanScreen>
 
       _cameraController = CameraController(
         frontCamera,
-        ResolutionPreset.medium,
+        ResolutionPreset.high, // High resolution for better face detail
         enableAudio: false,
         imageFormatGroup: defaultTargetPlatform == TargetPlatform.android
             ? ImageFormatGroup.yuv420
