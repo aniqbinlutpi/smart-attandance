@@ -98,23 +98,12 @@ If issues persist, check device's auto-rotate settings.
    ```
 3. Rebuild: `flutter clean && flutter build apk`
 
-### Issue: NNAPI delegate not available
-**Symptom**: Warning in logs: "NNAPI delegate not available"
-
-**Solution**:
-This is normal on some devices. The app automatically falls back to CPU inference, which is still fast for MobileFaceNet.
-
-To check if NNAPI is being used:
-```bash
-flutter logs | grep NNAPI
-```
-
 ### Issue: Face recognition is slow
 **Causes & Solutions**:
 
 1. **Low-end device**: 
    - Expected on devices with weak CPUs
-   - NNAPI should help if available
+   - CPU inference typically takes 200-500ms per scan
 
 2. **Debug mode**:
    - Use release build for better performance

@@ -55,29 +55,22 @@ ndk {
 
 ### 3. Face Recognition Service Enhancement (`lib/services/face_recognition_service.dart`)
 
-#### Added NNAPI Hardware Acceleration
+#### Optimized TFLite Configuration
 ```dart
-if (defaultTargetPlatform == TargetPlatform.android) {
-  try {
-    final nnApiDelegate = NnApiDelegate();
-    options.addDelegate(nnApiDelegate);
-    debugPrint('✅ [TFLite] NNAPI delegate enabled for Android');
-  } catch (e) {
-    debugPrint('⚠️ [TFLite] NNAPI delegate not available: $e');
-    // Fallback to CPU
-  }
-}
+final options = InterpreterOptions();
+// Note: NNAPI delegate not available in tflite_flutter 0.11.0
+// CPU inference is sufficient for MobileFaceNet model (~200-500ms)
 ```
 
 **Why**: 
-- NNAPI (Android Neural Networks API) provides hardware acceleration on supported devices
-- Significantly improves face recognition performance
-- Graceful fallback to CPU ensures compatibility with all devices
-- CPU performance is still adequate for MobileFaceNet model
+- CPU inference is fast and reliable for the MobileFaceNet model
+- No external dependencies on hardware acceleration APIs
+- Consistent performance across all Android devices
+- Simple and maintainable implementation
 
 **Expected Performance**:
-- With NNAPI: ~50-100ms per inference (on modern devices)
-- Without NNAPI: ~200-500ms per inference (still acceptable)
+- CPU inference: ~200-500ms per scan (acceptable for attendance)
+- Optimized for MobileFaceNet's small model size (5MB)
 
 ### 4. Documentation
 
@@ -127,7 +120,7 @@ Created comprehensive documentation for Android support:
 | Camera Access | API 21 | ✅ Full Support | Front camera required |
 | GPS Location | API 21 | ✅ Full Support | High accuracy |
 | Mock Detection | API 21 | ✅ Full Support | Security feature |
-| NNAPI Acceleration | API 27+ | ✅ Optional | Auto-fallback to CPU |
+| CPU Inference | API 21 | ✅ Full Support | Fast & reliable |
 | Permissions | API 21 | ✅ Runtime | Uses permission_handler |
 
 ## 🔧 Technical Details
@@ -160,10 +153,10 @@ All permissions are requested at runtime:
 
 ## 🚀 Performance Optimizations
 
-### 1. Hardware Acceleration
-- NNAPI delegate for supported devices
-- Automatic fallback to optimized CPU inference
-- No degradation on unsupported devices
+### 1. TFLite Optimization
+- Optimized CPU inference for MobileFaceNet
+- Efficient model loading with noCompress configuration
+- Multi-architecture support for broad compatibility
 
 ### 2. Camera Optimization
 - Medium resolution preset (640x480 typical)
@@ -253,7 +246,7 @@ The implementation has been designed and verified to work with:
 ### 2. Manifest Configuration
 - ✅ All required permissions declared
 - ✅ Hardware features documented
-- ✅ Proper hardware acceleration
+- ✅ Camera and location features
 - ✅ Query declarations
 
 ### 3. Code Quality
@@ -300,9 +293,13 @@ If needed for continuous tracking:
 <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 ```
 
-### 2. GPU Delegate
-Alternative to NNAPI for different performance profile:
+### 2. Hardware Acceleration
+When tflite_flutter package supports it in future versions:
 ```dart
+// NNAPI for Android
+options.addDelegate(NnApiDelegate());
+
+// Or GPU delegate
 options.addDelegate(GpuDelegateV2());
 ```
 
@@ -333,7 +330,7 @@ options.addDelegate(GpuDelegateV2());
 ### TensorFlow Lite
 - [TFLite Android](https://www.tensorflow.org/lite/android)
 - [MobileFaceNet](https://arxiv.org/abs/1804.07573)
-- [NNAPI](https://www.tensorflow.org/lite/performance/nnapi)
+- [TFLite Performance](https://www.tensorflow.org/lite/performance/best_practices)
 
 ## ✅ Verification
 
@@ -348,7 +345,7 @@ All changes have been:
 
 The Smart Attendance app now has **full Android compatibility** with:
 - ✅ Optimized TFLite model loading
-- ✅ Hardware acceleration support
+- ✅ CPU-based inference (fast and reliable)
 - ✅ Multi-architecture compatibility
 - ✅ Comprehensive documentation
 - ✅ Testing procedures

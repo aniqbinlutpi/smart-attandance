@@ -37,24 +37,9 @@ class FaceRecognitionService {
     // 2. Initialize TFLite Model
     try {
       final options = InterpreterOptions();
-      if (defaultTargetPlatform == TargetPlatform.android) {
-        // Enable Android NNAPI delegate for hardware acceleration
-        // NNAPI (Android Neural Networks API) provides better performance on Android
-        // Note: NnApiDelegate is available in tflite_flutter package
-        try {
-          // NnApiDelegate is from tflite_flutter package (imported above)
-          final nnApiDelegate = NnApiDelegate();
-          options.addDelegate(nnApiDelegate);
-          debugPrint('✅ [TFLite] NNAPI delegate enabled for Android');
-        } catch (e) {
-          debugPrint('⚠️ [TFLite] NNAPI delegate not available: $e');
-          // Fallback to CPU, which is still fast for MobileFaceNet
-          // This may happen on:
-          // - Older Android versions (< 8.1)
-          // - Emulators without NNAPI support
-          // - Devices with incompatible hardware
-        }
-      }
+      // Note: NNAPI delegate not available in tflite_flutter 0.11.0
+      // CPU inference is sufficient for MobileFaceNet model (~200-500ms)
+      // Future versions may support hardware acceleration delegates
 
       _interpreter = await Interpreter.fromAsset(
           'assets/models/mobilefacenet.tflite',

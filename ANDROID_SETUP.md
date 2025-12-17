@@ -9,7 +9,7 @@ The app has been configured to work seamlessly on Android devices with the follo
 ### 1. **Face Recognition on Android**
 - ✅ TensorFlow Lite model support with proper asset loading
 - ✅ Google ML Kit Face Detection integration
-- ✅ Hardware acceleration support
+- ✅ CPU-based inference (fast and reliable)
 - ✅ Multi-architecture support (armeabi-v7a, arm64-v8a, x86, x86_64)
 
 ### 2. **Camera Access**
