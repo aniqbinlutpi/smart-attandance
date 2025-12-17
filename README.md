@@ -17,6 +17,16 @@ Aplikasi mudah alih kehadiran pekerja menggunakan teknologi **Imbasan Wajah (Fac
 
 **Estimated Time**: 2-3 hours to complete basic implementation
 
+## 📱 Android Setup & Support
+
+**Building for Android?** We have comprehensive Android-specific documentation:
+
+1. **[ANDROID_SETUP.md](ANDROID_SETUP.md)** ⭐ **Android Setup Guide** - Configuration & build instructions
+2. **[ANDROID_TESTING_CHECKLIST.md](ANDROID_TESTING_CHECKLIST.md)** - Complete testing checklist
+3. **[ANDROID_TROUBLESHOOTING.md](ANDROID_TROUBLESHOOTING.md)** - Common issues & solutions
+
+**Android Compatibility**: API 21+ (Android 5.0+) with full face recognition & location support
+
 ---
 
 ## 🌟 Fitur Utama
