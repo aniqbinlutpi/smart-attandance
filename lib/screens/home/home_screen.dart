@@ -7,6 +7,7 @@ import '../../constants/app_strings.dart';
 import '../face_scan/face_scan_screen.dart';
 import '../face_registration/face_registration_screen.dart';
 import '../attendance/attendance_history_screen.dart';
+import '../../widgets/reset_attendance_button.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -60,6 +61,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         actions: [
+          const ResetAttendanceButton(), // Added reset button
           IconButton(
             icon: const Icon(
               Icons.notifications_outlined,
@@ -72,6 +74,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
+// ...
       body: pages[_currentIndex],
       bottomNavigationBar: Container(
         decoration: BoxDecoration(

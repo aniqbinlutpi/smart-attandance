@@ -28,6 +28,8 @@ class _FaceScanScreenState extends State<FaceScanScreen>
   final FaceRepository _repository = FaceRepository();
   // SSD removed: Redundant FaceDetector
 
+  CameraImage? _lastCameraImage;
+
   bool _isInitializing = true;
   bool _isProcessing = false;
   bool _isDetecting = false;
@@ -42,6 +44,9 @@ class _FaceScanScreenState extends State<FaceScanScreen>
 
   // Stored embeddings
   List<List<double>>? _storedEmbeddings;
+
+  // Retry logic
+  int _retryCount = 0;
 
   @override
   void initState() {
@@ -259,6 +264,7 @@ class _FaceScanScreenState extends State<FaceScanScreen>
   DateTime _lastProcessTime = DateTime.now();
 
   Future<void> _processImage(CameraImage image) async {
+    _lastCameraImage = image;
     // Throttle processing to prevent crash/overheating (process every 50ms to catch blinks)
     if (DateTime.now().difference(_lastProcessTime).inMilliseconds < 50) {
       _isDetecting = false; // CRITICAL FIX: Reset flag if throttled
@@ -375,7 +381,11 @@ class _FaceScanScreenState extends State<FaceScanScreen>
         _checkLivenessAndVerify(face);
         break;
       case ScanStep.verifying:
-        // Already verifying, do nothing
+        // If we are in verifying state but not processing (e.g. retrying),
+        // we should attempt to scan the face again immediately.
+        if (!_isProcessing) {
+          _performFaceScan(face);
+        }
         break;
     }
   }
@@ -444,6 +454,7 @@ class _FaceScanScreenState extends State<FaceScanScreen>
   Future<void> _performFaceScan(Face face) async {
     if (_isProcessing) return;
     if (_storedEmbeddings == null || _storedEmbeddings!.isEmpty) return;
+    if (_lastCameraImage == null) return; // Safety check
 
     debugPrint('🔍 [SCAN] Starting face verification...');
 
@@ -457,7 +468,9 @@ class _FaceScanScreenState extends State<FaceScanScreen>
 
       // Extract embeddings from the detected face
       debugPrint('🔍 [SCAN] Extracting embeddings from detected face...');
-      final scannedEmbedding = _faceService.extractEmbeddings(face);
+      // Pass the CAMERA IMAGE now
+      final scannedEmbedding =
+          await _faceService.extractEmbeddings(_lastCameraImage!, face);
       debugPrint('🔍 [SCAN] Extracted ${scannedEmbedding.length} features');
 
       if (scannedEmbedding.isEmpty) {
@@ -498,6 +511,7 @@ class _FaceScanScreenState extends State<FaceScanScreen>
       if (matchResult['match']) {
         debugPrint('✅ [SCAN] Face recognized!');
         // Face recognized - record attendance
+        _retryCount = 0; // Reset retry count
         await _recordAttendance(
           userId: userId,
           similarityScore: matchResult['similarity'],
@@ -505,15 +519,29 @@ class _FaceScanScreenState extends State<FaceScanScreen>
           position: position,
         );
       } else {
-        debugPrint('❌ [SCAN] Face not recognized');
-        // Face not recognized
-        setState(() {
-          _statusMessage = "Face mismatch. Please re-register in Profile.";
-          _isProcessing = false;
-        });
-        if (mounted) {
-          _showErrorDialog(
-              "Face not recognized.\n\nSince we improved security, please go to Profile > Face Registration and register again.");
+        debugPrint('❌ [SCAN] Face not recognized. Retry: $_retryCount');
+
+        // Retry logic
+        if (_retryCount < 3) {
+          _retryCount++;
+          setState(() {
+            _statusMessage = "Verifying... (Attempt ${_retryCount + 1})";
+            _isProcessing = false;
+          });
+
+          await Future.delayed(const Duration(milliseconds: 500));
+          if (mounted) _startImageStream();
+        } else {
+          // Failure after retries
+          setState(() {
+            _statusMessage = "Face mismatch. Please re-register in Profile.";
+            _isProcessing = false;
+            _retryCount = 0;
+          });
+          if (mounted) {
+            _showErrorDialog(
+                "Face not recognized.\n\nSince we improved security, please go to Profile > Face Registration and register again.");
+          }
         }
       }
     } catch (e, stackTrace) {

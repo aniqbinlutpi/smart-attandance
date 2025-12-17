@@ -10,8 +10,8 @@ class LocationService {
   /// Office coordinates
   /// TODO: Update with your actual office coordinates for production
   /// Currently set to: Home (Kampung Kerasak area) for testing
-  static const double officeLat = 6.0936597; // Approximate lat from screenshot
-  static const double officeLng = 102.1420048; // Approximate lng from screenshot
+  static const double officeLat = 3.0439774709176737; // Approximate lat from screenshot
+  static const double officeLng = 101.70637935352624; // Approximate lng from screenshot
 
   /// Allowed radius in meters
   /// Users must be within this distance to clock in/out
