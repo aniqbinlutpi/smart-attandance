@@ -38,7 +38,15 @@ class FaceRecognitionService {
     try {
       final options = InterpreterOptions();
       if (defaultTargetPlatform == TargetPlatform.android) {
-        // options.addDelegate(GpuDelegateV2()); // Optional: Use GPU
+        // Enable Android NNAPI delegate for hardware acceleration
+        // NNAPI (Android Neural Networks API) provides better performance on Android
+        try {
+          options.addDelegate(NnApiDelegate());
+          debugPrint('✅ [TFLite] NNAPI delegate enabled for Android');
+        } catch (e) {
+          debugPrint('⚠️ [TFLite] NNAPI delegate not available: $e');
+          // Fallback to CPU, which is still fast for MobileFaceNet
+        }
       }
 
       _interpreter = await Interpreter.fromAsset(
