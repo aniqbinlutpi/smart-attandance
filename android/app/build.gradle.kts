@@ -27,6 +27,16 @@ android {
 
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        
+        // Support for TFLite and native libraries
+        ndk {
+            abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64"))
+        }
+    }
+    
+    // Prevent compression of TFLite model files for proper loading
+    androidResources {
+        noCompress("tflite")
     }
 
     buildTypes {
