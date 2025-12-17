@@ -1,3 +1,5 @@
+import org.gradle.api.file.Directory
+
 allprojects {
     repositories {
         google()
@@ -5,25 +7,40 @@ allprojects {
     }
 }
 
-// Apply Flutter compatibility script to all subprojects
-// This provides Flutter SDK properties to legacy plugins
+// Apply Flutter compatibility script for legacy plugins
 subprojects {
-    if (project.buildFile.exists()) {
-        project.apply(from: "${rootProject.projectDir}/flutter_compat.gradle")
+    if (buildFile.exists()) {
+        apply(from = rootProject.file("flutter_compat.gradle"))
     }
 }
 
-val newBuildDir: Directory = rootProject.layout.buildDirectory.dir("../../build").get()
+// Flutter build directory outside android/
+val newBuildDir: Directory =
+    rootProject.layout.buildDirectory.dir("../../build").get()
+
 rootProject.layout.buildDirectory.value(newBuildDir)
 
 subprojects {
-    val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
-    project.layout.buildDirectory.value(newSubprojectBuildDir)
-}
-subprojects {
-    project.evaluationDependsOn(":app")
+    layout.buildDirectory.value(newBuildDir.dir(name))
 }
 
+// Ensure app module evaluated first
+subprojects {
+    evaluationDependsOn(":app")
+}
+
+// 🔒 Force AndroidX versions (prevents AGP 8.9+ deps)
+subprojects {
+    configurations.all {
+        resolutionStrategy {
+            force("androidx.core:core:1.12.0")
+            force("androidx.core:core-ktx:1.12.0")
+            force("androidx.browser:browser:1.8.0")
+        }
+    }
+}
+
+// Clean task
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
