@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import '../../services/permission_service.dart';
@@ -202,7 +204,9 @@ class _FaceScanScreenState extends State<FaceScanScreen>
         frontCamera,
         ResolutionPreset.medium,
         enableAudio: false,
-        imageFormatGroup: ImageFormatGroup.bgra8888,
+        imageFormatGroup: defaultTargetPlatform == TargetPlatform.android
+            ? ImageFormatGroup.yuv420
+            : ImageFormatGroup.bgra8888,
       );
 
       await _cameraController!.initialize();
@@ -352,21 +356,43 @@ class _FaceScanScreenState extends State<FaceScanScreen>
       final format = InputImageFormatValue.fromRawValue(image.format.raw);
       if (format == null) return null;
 
-      final plane = image.planes.first;
-      if (plane.bytes.isEmpty) return null;
+      // For Android YUV420, we need to pass all planes
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        return InputImage.fromBytes(
+          bytes: _concatenatePlanes(image.planes),
+          metadata: InputImageMetadata(
+            size: Size(image.width.toDouble(), image.height.toDouble()),
+            rotation: rotation,
+            format: format,
+            bytesPerRow: image.planes[0].bytesPerRow,
+          ),
+        );
+      } else {
+        // For iOS BGRA8888, use first plane
+        final plane = image.planes.first;
+        if (plane.bytes.isEmpty) return null;
 
-      return InputImage.fromBytes(
-        bytes: plane.bytes,
-        metadata: InputImageMetadata(
-          size: Size(image.width.toDouble(), image.height.toDouble()),
-          rotation: rotation,
-          format: format,
-          bytesPerRow: plane.bytesPerRow,
-        ),
-      );
+        return InputImage.fromBytes(
+          bytes: plane.bytes,
+          metadata: InputImageMetadata(
+            size: Size(image.width.toDouble(), image.height.toDouble()),
+            rotation: rotation,
+            format: format,
+            bytesPerRow: plane.bytesPerRow,
+          ),
+        );
+      }
     } catch (e) {
       return null;
     }
+  }
+
+  Uint8List _concatenatePlanes(List<Plane> planes) {
+    final WriteBuffer allBytes = WriteBuffer();
+    for (final Plane plane in planes) {
+      allBytes.putUint8List(plane.bytes);
+    }
+    return allBytes.done().buffer.asUint8List();
   }
 
   // Liveness state
