@@ -40,12 +40,19 @@ class FaceRecognitionService {
       if (defaultTargetPlatform == TargetPlatform.android) {
         // Enable Android NNAPI delegate for hardware acceleration
         // NNAPI (Android Neural Networks API) provides better performance on Android
+        // Note: NnApiDelegate is available in tflite_flutter package
         try {
-          options.addDelegate(NnApiDelegate());
+          // NnApiDelegate is from tflite_flutter package (imported above)
+          final nnApiDelegate = NnApiDelegate();
+          options.addDelegate(nnApiDelegate);
           debugPrint('✅ [TFLite] NNAPI delegate enabled for Android');
         } catch (e) {
           debugPrint('⚠️ [TFLite] NNAPI delegate not available: $e');
           // Fallback to CPU, which is still fast for MobileFaceNet
+          // This may happen on:
+          // - Older Android versions (< 8.1)
+          // - Emulators without NNAPI support
+          // - Devices with incompatible hardware
         }
       }
 

@@ -11,6 +11,7 @@ Quick reference for solving common Android issues with the Smart Attendance app.
 This has been fixed in the latest build configuration. If you still encounter this:
 ```bash
 flutter clean
+cd android && ./gradlew clean && cd ..
 flutter pub get
 flutter build apk
 ```
@@ -356,6 +357,7 @@ If none of the above solutions work:
 4. **Clean build**:
    ```bash
    flutter clean
+   cd android && ./gradlew clean && cd ..
    rm -rf build/
    flutter pub get
    flutter build apk --release
