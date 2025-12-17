@@ -412,8 +412,6 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
       final rotation =
           InputImageRotationValue.fromRawValue(camera.sensorOrientation) ??
               InputImageRotation.rotation0deg;
-      final format = InputImageFormatValue.fromRawValue(image.format.raw) ??
-          InputImageFormat.nv21;
 
       // For Android YUV420, we need to pass all planes
       if (defaultTargetPlatform == TargetPlatform.android) {
@@ -422,7 +420,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
           metadata: InputImageMetadata(
             size: Size(image.width.toDouble(), image.height.toDouble()),
             rotation: rotation,
-            format: format,
+            format: InputImageFormat.nv21, // Explicitly set NV21 for Android
             bytesPerRow: image.planes[0].bytesPerRow,
           ),
         );
@@ -434,7 +432,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
           metadata: InputImageMetadata(
             size: Size(image.width.toDouble(), image.height.toDouble()),
             rotation: rotation,
-            format: format,
+            format: InputImageFormat.bgra8888, // Explicitly set BGRA8888 for iOS
             bytesPerRow: plane.bytesPerRow,
           ),
         );

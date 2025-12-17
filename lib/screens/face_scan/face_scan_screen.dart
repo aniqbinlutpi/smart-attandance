@@ -353,9 +353,6 @@ class _FaceScanScreenState extends State<FaceScanScreen>
           InputImageRotationValue.fromRawValue(camera.sensorOrientation);
       if (rotation == null) return null;
 
-      final format = InputImageFormatValue.fromRawValue(image.format.raw);
-      if (format == null) return null;
-
       // For Android YUV420, we need to pass all planes
       if (defaultTargetPlatform == TargetPlatform.android) {
         return InputImage.fromBytes(
@@ -363,7 +360,7 @@ class _FaceScanScreenState extends State<FaceScanScreen>
           metadata: InputImageMetadata(
             size: Size(image.width.toDouble(), image.height.toDouble()),
             rotation: rotation,
-            format: format,
+            format: InputImageFormat.nv21, // Explicitly set NV21 for Android
             bytesPerRow: image.planes[0].bytesPerRow,
           ),
         );
@@ -377,7 +374,7 @@ class _FaceScanScreenState extends State<FaceScanScreen>
           metadata: InputImageMetadata(
             size: Size(image.width.toDouble(), image.height.toDouble()),
             rotation: rotation,
-            format: format,
+            format: InputImageFormat.bgra8888, // Explicitly set BGRA8888 for iOS
             bytesPerRow: plane.bytesPerRow,
           ),
         );
