@@ -49,7 +49,7 @@ android {
 
 dependencies {
     // 🔒 Pin AndroidX versions (AGP 8.7 compatible)
-    implementation("androidx.core:core:1.12.0")
+    //implementation("androidx.core:core:1.12.0")
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.browser:browser:1.8.0")
 }
